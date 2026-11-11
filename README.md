@@ -96,6 +96,16 @@ src/
 └── test/
 ```
 
+## Documentación
+
+- [AGENTS.md](AGENTS.md): reglas de trabajo para agentes.
+- [Arquitectura](docs/ARCHITECTURE.md).
+- [API](docs/API.md) y [convenciones](docs/API_CONVENTIONS.md).
+- [Despliegue](docs/DEPLOYMENT.md).
+- [Seguridad](docs/SECURITY.md).
+- [Testing](docs/TESTING.md).
+- [Decisiones](docs/decisions/).
+
 ## Calidad
 
 El workflow de `.github/workflows/ci.yml` ejecuta instalación, lint, formato, pruebas y build.
