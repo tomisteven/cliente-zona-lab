@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Build y cobertura
+dist/
+coverage/
+*.tsbuildinfo
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Herramientas y sistema
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Reportes de pruebas
+playwright-report/
+test-results/
