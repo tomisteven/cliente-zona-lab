@@ -20,6 +20,7 @@
 - No leer la cookie HttpOnly desde JavaScript.
 - El token CSRF se lee de `zl_admin_csrf` y se envía en `x-csrf-token`.
 - Un `401` debe limpiar el estado de sesión y redirigir al login.
+- La contraseña de aplicación SMTP se carga en el panel, viaja solo al backend y nunca se guarda ni se lee desde el navegador.
 
 ## XSS
 

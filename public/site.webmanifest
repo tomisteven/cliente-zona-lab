@@ -1,0 +1,19 @@
+{
+  "name": "Zona Lab · Bolsos y accesorios personalizados",
+  "short_name": "Zona Lab",
+  "description": "Bolsos, mochilas, neceseres y paleteros personalizados para marcas, clubes y empresas.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#050b16",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

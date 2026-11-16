@@ -32,6 +32,7 @@ export default function QuantityStep({
                 key={option}
                 type="button"
                 className={`quantity-chip ${quantityNumber === option ? 'is-active' : ''}`}
+                aria-pressed={quantityNumber === option}
                 onClick={() => onQuantityChange(String(option))}
               >
                 {option}

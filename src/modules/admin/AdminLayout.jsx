@@ -1,11 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import { usePageMeta } from '../../shared/hooks/usePageMeta.js';
 import { useAdminAuth } from './admin-auth.context.js';
 
+const ADMIN_TITLES = {
+  '/admin/resumen': 'Resumen',
+  '/admin/productos': 'Productos',
+  '/admin/productos/nuevo': 'Nuevo producto',
+  '/admin/pedidos': 'Pedidos',
+  '/admin/resenas': 'Reseñas',
+  '/admin/biblioteca': 'Biblioteca',
+  '/admin/actividad': 'Actividad',
+  '/admin/configuracion': 'Configuración',
+};
+
 const ADMIN_LINKS = [
+  { to: '/admin/resumen', label: 'Resumen', end: false },
   { to: '/admin/productos', label: 'Productos', end: false },
   { to: '/admin/pedidos', label: 'Pedidos', end: false },
+  { to: '/admin/resenas', label: 'Reseñas', end: false },
+  { to: '/admin/biblioteca', label: 'Biblioteca', end: false },
+  { to: '/admin/actividad', label: 'Actividad', end: false },
   { to: '/admin/configuracion', label: 'Configuración', end: false },
 ];
 
@@ -14,6 +30,15 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  usePageMeta(
+    ADMIN_TITLES[location.pathname] ?? 'Panel administrativo',
+    'Panel privado de Zona Lab.',
+    {
+      path: location.pathname,
+      robots: 'noindex,nofollow',
+    },
+  );
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });

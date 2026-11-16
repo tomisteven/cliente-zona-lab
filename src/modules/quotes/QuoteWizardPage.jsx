@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import { trackEvent } from '../../shared/analytics/analytics.js';
 import { ArrowIcon } from '../../shared/components/Icons.jsx';
 import { ErrorState, LoadingState } from '../../shared/components/PageStates.jsx';
+import { usePageMeta } from '../../shared/hooks/usePageMeta.js';
+import { getAttribution } from '../../shared/marketing/attribution.js';
 import { getCatalogProduct, listCatalogProducts } from '../catalog/catalog.api.js';
 import { useSiteSettings } from '../site-settings/site-settings.context.js';
 import { createQuoteRequest, estimateQuote } from './quote.api.js';
+import { clearQuoteDraft, readQuoteDraft, saveQuoteDraft } from './quote-draft.js';
 import DesignStep from './components/DesignStep.jsx';
 import ProductPicker from './components/ProductPicker.jsx';
 import QuantityStep from './components/QuantityStep.jsx';
@@ -76,6 +80,13 @@ export default function QuoteWizardPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const settings = useSiteSettings();
+
+  usePageMeta(
+    'Cotizá tu pedido personalizado',
+    'Elegí el producto, personalizalo, definí la cantidad y enviá tu pedido por WhatsApp. Sin registro y sin pagos online.',
+    { path: '/personalizar' },
+  );
+
   const [productsState, setProductsState] = useState(INITIAL_PRODUCTS_STATE);
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [productState, setProductState] = useState(INITIAL_PRODUCT_STATE);
@@ -147,10 +158,31 @@ export default function QuoteWizardPage() {
     getCatalogProduct(slug, { signal: controller.signal })
       .then((response) => {
         const loadedProduct = response.product;
+        const draft = readQuoteDraft();
+        const draftSelections =
+          draft?.slug === loadedProduct.slug
+            ? Object.fromEntries(
+                Object.entries(draft.selections ?? {}).filter(([groupId, choiceId]) =>
+                  loadedProduct.optionGroups.some(
+                    (group) =>
+                      group.id === groupId &&
+                      group.choices.some((choice) => choice.id === choiceId),
+                  ),
+                ),
+              )
+            : null;
+        const draftQuantity = Number(draft?.quantity);
 
         setProduct(loadedProduct);
-        setSelections(createInitialSelections(loadedProduct));
-        setQuantity(String(loadedProduct.minimumQuantity));
+        setSelections(draftSelections ?? createInitialSelections(loadedProduct));
+        setQuantity(
+          draft?.slug === loadedProduct.slug &&
+            Number.isInteger(draftQuantity) &&
+            draftQuantity >= loadedProduct.minimumQuantity
+            ? String(draftQuantity)
+            : String(loadedProduct.minimumQuantity),
+        );
+        setDesignNotes(draft?.slug === loadedProduct.slug ? (draft.designNotes ?? '') : '');
         setEstimateState(INITIAL_ESTIMATE_STATE);
         setProductState({ status: 'success', error: null });
         setStep(2);
@@ -217,6 +249,19 @@ export default function QuoteWizardPage() {
       controller.abort();
     };
   }, [product, step, quantityNumber, selectionPayload, estimateAttempt]);
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    saveQuoteDraft({
+      slug: product.slug,
+      selections,
+      quantity,
+      designNotes,
+    });
+  }, [product, selections, quantity, designNotes]);
 
   useEffect(() => {
     if (success) {
@@ -319,6 +364,7 @@ export default function QuoteWizardPage() {
       quantity: quantityNumber,
       selections: selectionPayload,
       designNotes: designNotes.trim(),
+      marketing: getAttribution(),
       customer: {
         name: customer.name.trim(),
         brandName: customer.brandName.trim(),
@@ -344,6 +390,14 @@ export default function QuoteWizardPage() {
     try {
       const result = await createQuoteRequest(formData);
 
+      trackEvent('quote_submitted', {
+        code: result.quote?.code,
+        value: result.quote?.pricing?.estimatedTotal ?? 0,
+        currency: 'ARS',
+        status: result.quote?.pricing?.status,
+      });
+
+      clearQuoteDraft();
       setSuccess(result);
       setSubmitting(false);
 
@@ -437,7 +491,7 @@ export default function QuoteWizardPage() {
     );
   }
 
-  if (slug && productState.status === 'loading') {
+  if (slug && !product && productState.status !== 'error') {
     return (
       <div className="page quote-page">
         <div className="container quote-shell">

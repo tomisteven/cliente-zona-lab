@@ -4,6 +4,7 @@ import { resolveMediaUrl } from '../../shared/api/http-client.js';
 import { UploadIcon } from '../../shared/components/Icons.jsx';
 import { validateMediaFile, MEDIA_FILE_ACCEPT } from '../../shared/utils/files.js';
 import { uploadAdminMedia } from './admin.api.js';
+import AdminMediaPicker from './AdminMediaPicker.jsx';
 
 export default function AdminImageField({ id, label, value, onChange, hint }) {
   const [uploading, setUploading] = useState(false);
@@ -62,10 +63,13 @@ export default function AdminImageField({ id, label, value, onChange, hint }) {
         )}
 
         <div>
-          <label className="button button--outline button--compact" htmlFor={id}>
-            <UploadIcon />
-            {uploading ? 'Subiendo…' : value ? 'Cambiar imagen' : 'Subir imagen'}
-          </label>
+          <div className="admin-image-field__buttons">
+            <label className="button button--outline button--compact" htmlFor={id}>
+              <UploadIcon />
+              {uploading ? 'Subiendo…' : value ? 'Cambiar imagen' : 'Subir imagen'}
+            </label>
+            <AdminMediaPicker onSelect={onChange} disabled={uploading} />
+          </div>
           <input
             id={id}
             className="file-input"

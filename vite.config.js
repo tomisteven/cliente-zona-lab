@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
       clearMocks: true,
       restoreMocks: true,
       css: false,
+      exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     },
   };
 });

@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom';
 
-import { CATALOG_CATEGORIES } from '../../modules/catalog/catalog.constants.js';
-import { useSiteSettings } from '../../modules/site-settings/site-settings.context.js';
+import { useConsent } from '../consent/consent-context.js';
 import { buildWhatsAppUrl } from '../utils/whatsapp.js';
 import { WhatsAppIcon } from './Icons.jsx';
 
-export default function SiteFooter() {
-  const settings = useSiteSettings();
-  const whatsappUrl = buildWhatsAppUrl(settings.whatsappNumber);
+export default function SiteFooter({ whatsappNumber, categories = [] }) {
+  const { openPreferences } = useConsent();
+  const whatsappUrl = buildWhatsAppUrl(whatsappNumber);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -37,13 +36,15 @@ export default function SiteFooter() {
           <Link to="/">Inicio</Link>
           <Link to="/catalogo">Catálogo</Link>
           <Link to="/personalizar">Personalizar pedido</Link>
+          <Link to="/contacto">Contacto</Link>
+          <Link to="/preguntas-frecuentes">Preguntas frecuentes</Link>
           <Link to="/#como-funciona">Cómo funciona</Link>
         </div>
 
         <div className="site-footer__column">
           <h2>Productos</h2>
-          {CATALOG_CATEGORIES.map((category) => (
-            <Link key={category.value} to={`/catalogo?categoria=${category.value}`}>
+          {categories.map((category) => (
+            <Link key={category.value} to={`/catalogo/${category.value}`}>
               {category.label}
             </Link>
           ))}
@@ -62,6 +63,14 @@ export default function SiteFooter() {
 
       <div className="container site-footer__bottom">
         <p>© {currentYear} Zona Lab. Todos los derechos reservados.</p>
+        <nav className="site-footer__legal" aria-label="Información legal">
+          <Link to="/privacidad">Privacidad</Link>
+          <Link to="/terminos">Términos</Link>
+          <Link to="/cookies">Cookies</Link>
+          <button className="text-button" type="button" onClick={openPreferences}>
+            Preferencias de cookies
+          </button>
+        </nav>
         <Link to="/admin/login">Acceso administrador</Link>
       </div>
     </footer>

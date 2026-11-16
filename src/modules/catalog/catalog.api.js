@@ -13,14 +13,12 @@ function buildQuery(params) {
   return query ? `?${query}` : '';
 }
 
-export function listCatalogProducts({ page = 1, limit = 12, category, search, signal } = {}) {
-  return request(`/catalog/products${buildQuery({ page, limit, category, search })}`, { signal });
+export function listCatalogProducts({ page = 1, limit = 12, category, search, sort, signal } = {}) {
+  return request(`/catalog/products${buildQuery({ page, limit, category, search, sort })}`, {
+    signal,
+  });
 }
 
 export function getCatalogProduct(slug, { signal } = {}) {
   return request(`/catalog/products/${encodeURIComponent(slug)}`, { signal });
-}
-
-export function getCatalogCategories({ signal } = {}) {
-  return request('/catalog/categories', { signal });
 }

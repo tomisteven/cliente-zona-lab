@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
-import { useSiteSettings } from '../../modules/site-settings/site-settings.context.js';
 import { buildWhatsAppUrl } from '../utils/whatsapp.js';
 import { CloseIcon, MenuIcon, WhatsAppIcon } from './Icons.jsx';
 
@@ -9,12 +8,12 @@ const NAV_LINKS = [
   { to: '/', label: 'Inicio', end: true },
   { to: '/catalogo', label: 'Catálogo' },
   { to: '/personalizar', label: 'Personalizar' },
+  { to: '/contacto', label: 'Contacto' },
 ];
 
-export default function SiteHeader() {
-  const settings = useSiteSettings();
+export default function SiteHeader({ whatsappNumber }) {
   const [isOpen, setIsOpen] = useState(false);
-  const whatsappUrl = buildWhatsAppUrl(settings.whatsappNumber);
+  const whatsappUrl = buildWhatsAppUrl(whatsappNumber);
 
   function closeMenu() {
     setIsOpen(false);

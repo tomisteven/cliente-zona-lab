@@ -31,10 +31,24 @@ export default [
     },
   },
   {
-    files: ['vite.config.js', 'eslint.config.js'],
+    files: [
+      'vite.config.js',
+      'playwright.config.js',
+      'eslint.config.js',
+      'scripts/**/*.js',
+      'e2e/**/*.js',
+    ],
     languageOptions: {
       globals: {
         ...globals.node,
+      },
+    },
+  },
+  {
+    files: ['tests/load/**/*.js'],
+    languageOptions: {
+      globals: {
+        __ENV: 'readonly',
       },
     },
   },

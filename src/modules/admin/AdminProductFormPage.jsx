@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { TrashIcon } from '../../shared/components/Icons.jsx';
 import { ErrorState, LoadingState } from '../../shared/components/PageStates.jsx';
 import { CATALOG_CATEGORIES } from '../catalog/catalog.constants.js';
-import { createAdminProduct, getAdminProduct, updateAdminProduct } from './admin.api.js';
+import {
+  createAdminProduct,
+  deleteAdminMedia,
+  getAdminProduct,
+  updateAdminProduct,
+} from './admin.api.js';
+import AdminGalleryField from './AdminGalleryField.jsx';
 import AdminImageField from './AdminImageField.jsx';
 
 function createEmptyTier() {
@@ -25,8 +31,12 @@ function createEmptyForm() {
     slug: '',
     category: CATALOG_CATEGORIES[0].value,
     shortDescription: '',
+    seoTitle: '',
+    seoDescription: '',
     description: '',
     imageUrl: '',
+    imageAlt: '',
+    galleryImages: [],
     active: true,
     minimumQuantity: '12',
     personalizationFee: '0',
@@ -36,13 +46,25 @@ function createEmptyForm() {
 }
 
 function mapProductToForm(product) {
+  const images =
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : product.imageUrl
+        ? [product.imageUrl]
+        : [];
+  const mainImage = product.imageUrl || images[0] || '';
+
   return {
     name: product.name,
     slug: product.slug,
     category: product.category,
     shortDescription: product.shortDescription,
+    seoTitle: product.seoTitle ?? '',
+    seoDescription: product.seoDescription ?? '',
     description: product.description,
-    imageUrl: product.imageUrl,
+    imageUrl: mainImage,
+    imageAlt: product.imageAlt ?? '',
+    galleryImages: images.filter((imageUrl) => imageUrl !== mainImage),
     active: product.active,
     minimumQuantity: String(product.minimumQuantity),
     personalizationFee: String(product.personalizationFee),
@@ -84,6 +106,15 @@ export default function AdminProductFormPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [errorDetails, setErrorDetails] = useState([]);
+  const [initialImages, setInitialImages] = useState([]);
+  const [savedSnapshot, setSavedSnapshot] = useState(() =>
+    JSON.stringify({ form: createEmptyForm(), featuresText: '' }),
+  );
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ form, featuresText }),
+    [form, featuresText],
+  );
+  const isDirty = !saving && currentSnapshot !== savedSnapshot;
 
   useEffect(() => {
     if (!isEditing) {
@@ -98,8 +129,14 @@ export default function AdminProductFormPage() {
 
     getAdminProduct(id, { signal: controller.signal })
       .then((response) => {
-        setForm(mapProductToForm(response.product));
-        setFeaturesText(response.product.features.join('\n'));
+        const nextForm = mapProductToForm(response.product);
+        const nextFeatures = response.product.features.join('\n');
+        const nextImages = [nextForm.imageUrl, ...nextForm.galleryImages].filter(Boolean);
+
+        setForm(nextForm);
+        setFeaturesText(nextFeatures);
+        setInitialImages(nextImages);
+        setSavedSnapshot(JSON.stringify({ form: nextForm, featuresText: nextFeatures }));
         setStatus('ready');
       })
       .catch((error) => {
@@ -116,8 +153,36 @@ export default function AdminProductFormPage() {
     };
   }, [id, isEditing, attempt]);
 
+  useEffect(() => {
+    if (!isDirty) {
+      return undefined;
+    }
+
+    function handleBeforeUnload(event) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
+
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function promoteGalleryImage(imageUrl) {
+    setForm((current) => ({
+      ...current,
+      imageUrl,
+      galleryImages: [
+        current.imageUrl,
+        ...current.galleryImages.filter((value) => value !== imageUrl),
+      ].filter(Boolean),
+    }));
   }
 
   function updateTier(index, field, value) {
@@ -213,17 +278,22 @@ export default function AdminProductFormPage() {
     setSaveError(null);
     setErrorDetails([]);
 
+    const nextImages = [form.imageUrl, ...form.galleryImages].filter(Boolean);
     const payload = {
       name: form.name.trim(),
       slug: form.slug.trim() || undefined,
       category: form.category,
       shortDescription: form.shortDescription.trim(),
+      seoTitle: form.seoTitle.trim(),
+      seoDescription: form.seoDescription.trim(),
       description: form.description.trim(),
       features: featuresText
         .split('\n')
         .map((feature) => feature.trim())
         .filter(Boolean),
       imageUrl: form.imageUrl,
+      imageAlt: form.imageAlt.trim(),
+      images: nextImages,
       active: form.active,
       minimumQuantity: Number(form.minimumQuantity),
       personalizationFee: Number(form.personalizationFee || 0),
@@ -247,6 +317,12 @@ export default function AdminProductFormPage() {
         await updateAdminProduct(id, payload);
       } else {
         await createAdminProduct(payload);
+      }
+
+      for (const previousImage of initialImages) {
+        if (!nextImages.includes(previousImage)) {
+          deleteAdminMedia(previousImage).catch(() => {});
+        }
       }
 
       navigate('/admin/productos', { replace: true });
@@ -473,6 +549,37 @@ export default function AdminProductFormPage() {
           </div>
 
           <div className="form-field">
+            <label htmlFor="product-seo-title">Título SEO</label>
+            <input
+              id="product-seo-title"
+              type="text"
+              maxLength={70}
+              placeholder="Ej.: Bolso deportivo personalizado para clubes"
+              value={form.seoTitle}
+              onChange={(event) => updateField('seoTitle', event.target.value)}
+            />
+            <p className="field-hint">
+              Si lo dejás vacío se usa el nombre. Ideal hasta 60 caracteres. {form.seoTitle.length}
+              /70
+            </p>
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="product-seo-description">Descripción SEO</label>
+            <textarea
+              id="product-seo-description"
+              rows={3}
+              maxLength={160}
+              placeholder="Ej.: Bolso deportivo personalizado con logo bordado, producción por cantidad y cotización online."
+              value={form.seoDescription}
+              onChange={(event) => updateField('seoDescription', event.target.value)}
+            />
+            <p className="field-hint">
+              Si la dejás vacía se usa la descripción breve. {form.seoDescription.length}/160
+            </p>
+          </div>
+
+          <div className="form-field">
             <label htmlFor="product-features">Características</label>
             <textarea
               id="product-features"
@@ -494,6 +601,29 @@ export default function AdminProductFormPage() {
             hint="PNG, JPG o WEBP de hasta 8 MB. Usá una foto clara del producto, idealmente cuadrada."
             value={form.imageUrl}
             onChange={(value) => updateField('imageUrl', value)}
+          />
+
+          <div className="form-field">
+            <label htmlFor="product-image-alt">Texto alternativo de imágenes</label>
+            <input
+              id="product-image-alt"
+              type="text"
+              maxLength={200}
+              placeholder="Ej.: Bolso deportivo negro personalizado con logo bordado"
+              value={form.imageAlt}
+              onChange={(event) => updateField('imageAlt', event.target.value)}
+            />
+            <p className="field-hint">
+              Se usa para accesibilidad y SEO de las imágenes. Si queda vacío se usa el nombre.
+            </p>
+          </div>
+
+          <AdminGalleryField
+            id="product-gallery"
+            label="Galería adicional"
+            values={form.galleryImages}
+            onChange={(value) => updateField('galleryImages', value)}
+            onPromote={promoteGalleryImage}
           />
 
           <label className="checkbox-field">

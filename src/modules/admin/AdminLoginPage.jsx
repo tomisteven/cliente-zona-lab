@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { InlineMessage, LoadingState } from '../../shared/components/PageStates.jsx';
+import { usePageMeta } from '../../shared/hooks/usePageMeta.js';
 import { useAdminAuth } from './admin-auth.context.js';
 
 export default function AdminLoginPage() {
@@ -16,7 +17,12 @@ export default function AdminLoginPage() {
   const fromLocation = location.state?.from;
   const redirectTarget = fromLocation
     ? `${fromLocation.pathname}${fromLocation.search ?? ''}`
-    : '/admin/productos';
+    : '/admin/resumen';
+
+  usePageMeta('Acceso administrativo', 'Panel privado de Zona Lab.', {
+    path: '/admin/login',
+    robots: 'noindex,nofollow',
+  });
 
   if (status === 'authenticated') {
     return <Navigate to={redirectTarget} replace />;

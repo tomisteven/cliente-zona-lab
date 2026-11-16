@@ -11,7 +11,12 @@ import {
 import ProductImage from '../../shared/components/ProductImage.jsx';
 import { formatCurrency } from '../../shared/utils/format.js';
 import { CATALOG_CATEGORIES } from '../catalog/catalog.constants.js';
-import { deleteAdminProduct, listAdminProducts, setAdminProductStatus } from './admin.api.js';
+import {
+  deleteAdminProduct,
+  getAdminProductsExportUrl,
+  listAdminProducts,
+  setAdminProductStatus,
+} from './admin.api.js';
 
 const INITIAL_STATE = {
   status: 'loading',
@@ -127,10 +132,18 @@ export default function AdminProductsPage() {
           <h1>Productos</h1>
           <p>Gestioná modelos, precios por cantidad, opciones y visibilidad.</p>
         </div>
-        <Link className="button button--dark" to="/admin/productos/nuevo">
-          Nuevo producto
-          <ArrowIcon />
-        </Link>
+        <div className="admin-page__actions">
+          <a
+            className="button button--outline"
+            href={getAdminProductsExportUrl({ category, search })}
+          >
+            Exportar CSV
+          </a>
+          <Link className="button button--dark" to="/admin/productos/nuevo">
+            Nuevo producto
+            <ArrowIcon />
+          </Link>
+        </div>
       </div>
 
       <form className="admin-filters" onSubmit={handleSearchSubmit}>
@@ -237,7 +250,7 @@ export default function AdminProductsPage() {
                   <tr key={product.id}>
                     <td>
                       <div className="admin-product-cell">
-                        <ProductImage src={product.imageUrl} alt={product.name} />
+                        <ProductImage src={product.imageUrl} alt={product.name} sizes="64px" />
                         <div>
                           <strong>{product.name}</strong>
                           <span>/{product.slug}</span>

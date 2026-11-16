@@ -73,9 +73,9 @@ const CREATED_QUOTE = {
   whatsappUrl: 'https://wa.me/5491112345678?text=pedido',
 };
 
-function renderWizard() {
+function renderWizard(path = '/personalizar') {
   return render(
-    <MemoryRouter initialEntries={['/personalizar']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/personalizar" element={<QuoteWizardPage />} />
         <Route path="/personalizar/:slug" element={<QuoteWizardPage />} />
@@ -148,6 +148,30 @@ describe('QuoteWizardPage', () => {
     expect(payload.customer.name).toBe('Ana Pérez');
     expect(payload.productId).toBe(PRODUCT.id);
     expect(payload.quantity).toBe(10);
+  });
+
+  it('restaura el borrador guardado del pedido', async () => {
+    window.localStorage.setItem(
+      'zl_quote_draft',
+      JSON.stringify({
+        slug: PRODUCT.slug,
+        selections: { 'group-color': 'choice-white' },
+        quantity: '25',
+        designNotes: 'Logo centrado.',
+      }),
+    );
+
+    renderWizard(`/personalizar/${PRODUCT.slug}`);
+
+    expect(
+      await screen.findByRole('heading', { name: /Personalizá tu bolso urbano/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Blanco/i })).toBeChecked();
+    expect(screen.getByLabelText(/Indicaciones de diseño/i)).toHaveValue('Logo centrado.');
+
+    fireEvent.click(screen.getByRole('button', { name: /Continuar con la cantidad/i }));
+
+    expect(await screen.findByLabelText(/Cantidad exacta/i)).toHaveValue(25);
   });
 
   it('muestra un error de validación si falta el teléfono', async () => {

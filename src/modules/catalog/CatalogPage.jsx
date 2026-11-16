@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { EmptyState, ErrorState } from '../../shared/components/PageStates.jsx';
 import { ArrowIcon } from '../../shared/components/Icons.jsx';
+import { usePageMeta } from '../../shared/hooks/usePageMeta.js';
+import { absoluteMediaUrl, getSiteUrl } from '../../shared/seo/urls.js';
 import { listCatalogProducts } from './catalog.api.js';
 import { CATALOG_CATEGORIES } from './catalog.constants.js';
 import ProductCard from './ProductCard.jsx';
@@ -20,13 +22,43 @@ function getValidCategory(value) {
 
 export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const category = getValidCategory(searchParams.get('categoria'));
   const search = searchParams.get('buscar')?.trim() ?? '';
+  const sortParam = searchParams.get('orden');
+  const sort = ['newest', 'oldest', 'name'].includes(sortParam) ? sortParam : 'newest';
   const pageParam = Number(searchParams.get('pagina') ?? 1);
   const page = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1;
   const [searchInput, setSearchInput] = useState(search);
   const [state, setState] = useState(INITIAL_STATE);
   const [attempt, setAttempt] = useState(0);
+  const siteUrl = getSiteUrl();
+  const jsonLd = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Catálogo Zona Lab',
+      url: `${siteUrl}/catalogo`,
+      mainEntity: {
+        '@type': 'ItemList',
+        numberOfItems: state.items.length,
+        itemListElement: state.items.map((product, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: product.name,
+          url: `${siteUrl}/productos/${product.slug}`,
+          image: absoluteMediaUrl(product.imageUrl),
+        })),
+      },
+    }),
+    [siteUrl, state.items],
+  );
+
+  usePageMeta(
+    'Catálogo de bolsos y accesorios personalizados',
+    'Explorá bolsos, mochilas, neceseres, paleteros y fundas personalizables para tu marca, club o empresa.',
+    { path: '/catalogo', jsonLd },
+  );
 
   useEffect(() => {
     setSearchInput(search);
@@ -42,6 +74,7 @@ export default function CatalogPage() {
       limit: 12,
       category: category || undefined,
       search: search || undefined,
+      sort,
       signal: controller.signal,
     })
       .then((response) => {
@@ -68,9 +101,14 @@ export default function CatalogPage() {
     return () => {
       controller.abort();
     };
-  }, [category, search, page, attempt]);
+  }, [category, search, page, sort, attempt]);
 
-  function updateFilters({ nextCategory = category, nextSearch = search, nextPage = 1 }) {
+  function updateFilters({
+    nextCategory = category,
+    nextSearch = search,
+    nextPage = 1,
+    nextSort = sort,
+  }) {
     const nextParams = new URLSearchParams();
 
     if (nextCategory) {
@@ -79,6 +117,10 @@ export default function CatalogPage() {
 
     if (nextSearch) {
       nextParams.set('buscar', nextSearch);
+    }
+
+    if (nextSort !== 'newest') {
+      nextParams.set('orden', nextSort);
     }
 
     if (nextPage > 1) {
@@ -115,6 +157,7 @@ export default function CatalogPage() {
               <button
                 className={`filter-chip ${!category ? 'is-active' : ''}`}
                 type="button"
+                aria-pressed={!category}
                 onClick={() => updateFilters({ nextCategory: '' })}
               >
                 Todos
@@ -124,7 +167,8 @@ export default function CatalogPage() {
                   key={item.value}
                   className={`filter-chip ${category === item.value ? 'is-active' : ''}`}
                   type="button"
-                  onClick={() => updateFilters({ nextCategory: item.value })}
+                  aria-pressed={category === item.value}
+                  onClick={() => navigate(`/catalogo/${item.value}`)}
                 >
                   {item.label}
                 </button>
@@ -147,6 +191,18 @@ export default function CatalogPage() {
                 Buscar
               </button>
             </form>
+
+            <label className="catalog-sort">
+              <span className="sr-only">Ordenar productos</span>
+              <select
+                value={sort}
+                onChange={(event) => updateFilters({ nextSort: event.target.value })}
+              >
+                <option value="newest">Más recientes</option>
+                <option value="oldest">Más antiguos</option>
+                <option value="name">Nombre A–Z</option>
+              </select>
+            </label>
           </div>
 
           {state.status === 'success' && state.pagination && (
@@ -211,8 +267,8 @@ export default function CatalogPage() {
           {state.status === 'success' && state.items.length > 0 && (
             <>
               <div className="product-grid product-grid--catalog">
-                {state.items.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {state.items.map((product, index) => (
+                  <ProductCard key={product.id} product={product} index={index} />
                 ))}
               </div>
 

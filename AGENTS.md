@@ -74,15 +74,26 @@ Reglas de dependencia:
 | ------------------------ | ------------------------------------ |
 | `/`                      | Inicio.                              |
 | `/catalogo`              | Catálogo con filtros y búsqueda.     |
+| `/catalogo/:categoria`   | Landing SEO por categoría.           |
 | `/productos/:slug`       | Detalle de producto.                 |
 | `/personalizar`          | Wizard sin producto preseleccionado. |
 | `/personalizar/:slug`    | Wizard con producto preseleccionado. |
+| `/contacto`              | Formulario de consulta.              |
+| `/preguntas-frecuentes`  | FAQ público con schema FAQPage.      |
+| `/estado`                | Diagnóstico de conexión con la API.  |
+| `/privacidad`            | Política de privacidad.              |
+| `/terminos`              | Términos y condiciones.              |
+| `/cookies`               | Política de cookies.                 |
 | `/admin/login`           | Acceso administrativo.               |
+| `/admin/resumen`         | Dashboard administrativo.            |
 | `/admin/productos`       | Listado administrativo.              |
 | `/admin/productos/nuevo` | Alta de producto.                    |
 | `/admin/productos/:id`   | Edición de producto.                 |
 | `/admin/pedidos`         | Pedidos y descargas.                 |
-| `/admin/configuracion`   | Portada y WhatsApp.                  |
+| `/admin/resenas`         | Moderación de reseñas.               |
+| `/admin/biblioteca`      | Biblioteca de imágenes y variantes.  |
+| `/admin/actividad`       | Auditoría administrativa.            |
+| `/admin/configuracion`   | Portada, WhatsApp y SMTP.            |
 
 ## Flujo de datos
 
@@ -122,6 +133,8 @@ npm test
 npm run test:watch
 npm run lint
 npm run build
+npm run build:seo
+npm run seo:generate
 npm run preview
 npm run format
 npm run format:check
@@ -151,6 +164,17 @@ Puertos locales: frontend `8080`, backend `5050`.
 - No registrar datos sensibles en consola.
 - Mantener `rel="noreferrer"` en enlaces externos.
 
+## SEO
+
+- Toda página pública debe declarar metadatos con `usePageMeta`.
+- Mantener `canonical` sin parámetros de filtro.
+- El panel, login, diagnóstico y 404 deben ser `noindex`.
+- No inventar datos estructurados ni opiniones/reseñas.
+- Usar `VITE_SITE_URL` para canonical y Open Graph; no hardcodear dominios.
+- Al cambiar rutas, productos o metadatos, regenerar con `npm run build:seo`.
+- Mantener `robots.txt`, favicon, manifest y `og-default.jpg`.
+- No cargar imágenes principales con `lazy`; usar prioridad alta cuando corresponda.
+
 ## UI/UX
 
 - Mobile-first y responsive.
@@ -178,6 +202,11 @@ Mantener actualizado:
 - `docs/ARCHITECTURE.md`: estructura y flujos.
 - `docs/DEPLOYMENT.md`: build, SPA fallback y configuración.
 - `docs/SECURITY.md`: riesgos y controles del frontend.
+- `docs/SEO.md`: metadatos, prerender, sitemap y buscadores.
+- `docs/LEGAL.md`: páginas legales, consentimiento y analítica.
+- `docs/HOSTING.md`: fallback SPA, cache, headers y CSP.
+- `docs/ACCESSIBILITY.md`: controles y auditoría manual.
+- `docs/LOAD_TESTING.md`: escenario k6.
 - `docs/TESTING.md`: estrategia y comandos.
 - `docs/decisions/`: ADR para decisiones relevantes.
 
@@ -185,6 +214,7 @@ Mantener actualizado:
 
 - El cambio cumple el objetivo y no rompe rutas existentes.
 - Se ejecutaron `npm run lint`, `npm test`, `npm run build` y `npm run format:check`.
+- Si el cambio afecta rutas públicas, SEO o metadatos, se verificó `npm run build:seo` con `VITE_SITE_URL` y `SEO_API_BASE_URL`.
 - Se agregaron o actualizaron pruebas cuando cambió comportamiento.
 - No hay secretos ni artefactos generados en el diff.
 - La documentación refleja cambios de API, entorno o despliegue.
@@ -192,7 +222,7 @@ Mantener actualizado:
 
 ## Limitaciones conocidas
 
-- No hay E2E automatizado con navegador real.
-- No hay SSR ni generación estática.
+- No hay E2E automático en cada PR; el workflow `E2E` se ejecuta manualmente contra `E2E_BASE_URL`.
+- No hay SSR; las rutas públicas se prerenderizan estáticamente en `build:seo`.
 - El panel usa una sola cuenta administrativa.
 - La sesión depende de cookies del backend; frontend y API deben configurarse para el dominio correcto.

@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { resolveMediaUrl } from '../../shared/api/http-client.js';
+import { resolveMediaSrcSet } from '../../shared/api/media.js';
 import { ArrowIcon, CheckIcon, WhatsAppIcon } from '../../shared/components/Icons.jsx';
 import { EmptyState, ErrorState } from '../../shared/components/PageStates.jsx';
+import { usePageMeta } from '../../shared/hooks/usePageMeta.js';
+import { getSiteUrl } from '../../shared/seo/urls.js';
 import { buildWhatsAppUrl } from '../../shared/utils/whatsapp.js';
 import { listCatalogProducts } from '../catalog/catalog.api.js';
 import ProductCard from '../catalog/ProductCard.jsx';
@@ -60,6 +63,44 @@ const INITIAL_PRODUCTS_STATE = {
 
 export default function HomePage() {
   const settings = useSiteSettings();
+  const siteUrl = getSiteUrl();
+  const jsonLd = useMemo(
+    () => [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'Zona Lab',
+        url: siteUrl,
+        logo: `${siteUrl}/favicon.svg`,
+        description:
+          'Diseño, fabricación y personalización de bolsos, mochilas y accesorios para marcas, clubes y empresas.',
+        areaServed: 'AR',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Zona Lab',
+        url: siteUrl,
+        inLanguage: 'es-AR',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${siteUrl}/catalogo?buscar={search_term_string}`,
+          },
+          'query-input': 'required name=search_term_string',
+        },
+      },
+    ],
+    [siteUrl],
+  );
+
+  usePageMeta(
+    'Bolsos y accesorios personalizados',
+    'Bolsos, mochilas, neceseres y paleteros personalizados para marcas, clubes y empresas. Diseño propio, producción por cantidad y cotización online.',
+    { path: '/', jsonLd },
+  );
+
   const [productsState, setProductsState] = useState(INITIAL_PRODUCTS_STATE);
   const [attempt, setAttempt] = useState(0);
   const whatsappUrl = buildWhatsAppUrl(
@@ -134,7 +175,10 @@ export default function HomePage() {
             {settings.heroImageUrl ? (
               <img
                 src={resolveMediaUrl(settings.heroImageUrl)}
+                srcSet={resolveMediaSrcSet(settings.heroImageUrl, resolveMediaUrl) ?? undefined}
+                sizes="(max-width: 900px) 100vw, 48vw"
                 alt="Producción personalizada de Zona Lab"
+                fetchPriority="high"
               />
             ) : (
               <div className="hero-art" aria-hidden="true">
@@ -153,7 +197,7 @@ export default function HomePage() {
 
         <div className="container hero-strip">
           {CATALOG_CATEGORIES.map((category) => (
-            <Link key={category.value} to={`/catalogo?categoria=${category.value}`}>
+            <Link key={category.value} to={`/catalogo/${category.value}`}>
               {category.label}
             </Link>
           ))}
@@ -218,8 +262,8 @@ export default function HomePage() {
 
           {productsState.status === 'success' && productsState.items.length > 0 && (
             <div className="product-grid">
-              {productsState.items.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {productsState.items.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
               ))}
             </div>
           )}

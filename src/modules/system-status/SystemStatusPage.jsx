@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { usePageMeta } from '../../shared/hooks/usePageMeta.js';
 import { getSystemHealth } from './system-status.api.js';
 
 const INITIAL_STATE = {
@@ -11,6 +12,15 @@ const INITIAL_STATE = {
 export default function SystemStatusPage() {
   const [state, setState] = useState(INITIAL_STATE);
   const [attempt, setAttempt] = useState(0);
+
+  usePageMeta(
+    'Estado del sistema',
+    'Diagnóstico de conexión entre el sitio y la API de Zona Lab.',
+    {
+      path: '/estado',
+      robots: 'noindex,follow',
+    },
+  );
 
   useEffect(() => {
     const controller = new AbortController();

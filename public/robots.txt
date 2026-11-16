@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /estado
+
+# El build de producción (npm run build:seo) agrega la línea Sitemap con el dominio real.
